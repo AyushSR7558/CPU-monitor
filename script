@@ -20,10 +20,16 @@ read-proc() {
 	local busy 
 	while read -r key user nice system idle iowait \
 		irq softirq steal guest guest_nice; do 
-		busy=$(( user + nice + system + irq + softriq + steal + guest + nice))
-		idle=$((idle + iowait))
-		value="$busy $idle"
-		curr_data[$key]=$value
+		if [[ $key != cpu* ]]; then
+			continue;
+		elif [[ $key == "cpu" ]]; then
+			continue;
+		else
+			busy=$(( user + nice + system + irq + softriq + steal + guest + nice))
+			idle=$((idle + iowait))
+			value="$busy $idle"
+			curr_data[$key]=$value
+		fi
 	done < <(head -17 /proc/stat)
 }
 
@@ -41,17 +47,34 @@ print-bar() {
 	local int=$((usage/10))
 	local frac=$((usage % 10))
 	perc="$int.$frac"	
-	echo "$key  is $perc% busy"
+
+	local bar_char='|'
+	local empty_char='_'
+	local length=50
+
+	local num_bars=$(( usage * length / 1000 ))
+	
+	local i
+	local s='['
+	for ((i = 0; i < num_bars; i++)); do
+		s+=$bar_char
+	done
+	for((i = num_bars; i < length; i++)); do
+		s+=$empty_char
+	done
+	s+=']'
+
+	echo  "$s $perc% $key"
 
 }
 
 #create visual graph to show data
 create-visual() {
 	local key
-	for key in "${!curr_data[@]}"; do
-		echo $key
+	for key in $(printf "%s\n" "${!curr_data[@]}" | sort -V); do
 		print-bar "$key"
 	done
+	echo
 }
 
 #just to organize the things
