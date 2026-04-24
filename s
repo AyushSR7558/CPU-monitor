@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-
+# =========================
+# CPU MONITOR (B/W ASCII)
+# =========================
 declare -A curr_data=()
 declare -A prev_data=()
 declare -i NUM_CPUS=0
 
+# ── Cleanup ───────────────────────────────────────────────────────────────────
 cleanup() {
 	printf "\033[?25h"       # show cursor
 	printf "\033[?1049l"     # leave alternate screen
@@ -12,6 +15,7 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
+# ── Data helpers ──────────────────────────────────────────────────────────────
 copy_data() {
 	prev_data=()
 	for key in "${!curr_data[@]}"; do
@@ -32,6 +36,8 @@ read_proc() {
 	done < /proc/stat
 	NUM_CPUS=${#curr_data[@]}
 }
+
+# ── Draw one bar IN PLACE (row already positioned by caller) ──────────────────
 print_bar() {
 	local key=$1
 	local busy1 idle1 busy2 idle2
@@ -53,6 +59,7 @@ print_bar() {
 	printf "\033[2K %-6s [%s] %3d.%d%%\n" "$key" "$bar" "$int" "$frac"
 }
 
+# ── Draw static header ONCE ───────────────────────────────────────────────────
 draw_header() {
 	printf "\033[H"          # cursor to top-left
 	printf "\033[2K==============================================\n"
@@ -61,6 +68,7 @@ draw_header() {
 	printf "\033[2K\n"
 }
 
+# ── Update only the bar rows each tick ───────────────────────────────────────
 create_visual() {
 	# Header is static — just reposition past it (4 lines)
 	printf "\033[5;1H"       # move to row 5, col 1 (below 4-line header)
@@ -74,6 +82,7 @@ create_visual() {
 	printf "\033[2KPress Ctrl+C to exit\n"
 }
 
+# ── Entry point ───────────────────────────────────────────────────────────────
 main() {
 	printf "\033[?1049h"     # enter alternate screen
 	printf "\033[?25l"       # hide cursor
