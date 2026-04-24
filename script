@@ -4,7 +4,7 @@ declare -A curr_data=() # Use to store data. So that we can compaire it next sec
 declare -A prev_data=() 
 
 #copy the data from the curr_data to prev_data
-copy_data() {
+copy-data() {
 	prev_data=();
 	
 	local key value
@@ -27,7 +27,32 @@ read-proc() {
 	done < <(head -17 /proc/stat)
 }
 
+print-bar() {
+	local key=$1
+	local busy1 idle1 busy2 idle2
+	read -r busy1 idle1 <<< "${prev_data[$key]}"
+	read -r busy2 idle2 <<< "${curr_data[$key]}"
+	
+	local busy=$(( busy2 - busy1 ))
+	local idle=$(( idle2 - idle1 ))
+	local total=$(( busy + idle))
 
+	local usage=$(( 1000 * busy / total)) # In bash there nothing called as the float
+	local int=$((usage/10))
+	local frac=$((usage % 10))
+	perc="$int.$frac"	
+	echo "$key  is $perc% busy"
+
+}
+
+#create visual graph to show data
+create-visual() {
+	local key
+	for key in "${!curr_data[@]}"; do
+		echo $key
+		print-bar "$key"
+	done
+}
 
 #just to organize the things
 main() {
@@ -36,6 +61,7 @@ main() {
 	while true; do
 		copy-data
 		read-proc
+		create-visual
 		sleep 1
 	done
 }
