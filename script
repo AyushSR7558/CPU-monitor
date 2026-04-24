@@ -1,3 +1,43 @@
-#!/usr/bin/new bash
+#!/usr/bin/env bash
+
+declare -A curr_data=() # Use to store data. So that we can compaire it next second
+declare -A prev_data=() 
+
+#copy the data from the curr_data to prev_data
+copy_data() {
+	prev_data=();
+	
+	local key value
+	for key in  "{!curr_data[@]}"; do 
+		value=${curr_data[key]}
+		prev_data[$key]=$value
+	done	
+}
+
+read-proc() {
+	local key user nice system idle iowait 
+	local irq softriq steal guest guest_nice
+	local busy 
+	while read -r key user nice system idle iowait \
+		irq softirq steal guest guest_nice; do 
+		busy=$(( user + nice + system + irq + softriq + steal + guest + nice))
+		idle=$((idle + iowait))
+		value="$busy $idle"
+		curr_data[$key]=$value
+	done < <(head -17 /proc/stat)
+}
 
 
+
+#just to organize the things
+main() {
+	read-proc
+	sleep 1
+	while true; do
+		copy-data
+		read-proc
+		sleep 1
+	done
+}
+
+main
